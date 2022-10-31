@@ -7,6 +7,11 @@ import math
 
 import keyboard as kbd
 
+COLLIDE_LEFT = 0b0001
+COLLIDE_TOP = 0b0010
+COLLIDE_RIGHT = 0b0100
+COLLIDE_BOTTOM = 0b1000
+
 fild_width = 20
 fild_height = 22
 fild = [[' '] * fild_width for i in range(fild_height)]
@@ -74,7 +79,7 @@ def clear_glass():
     fill_rect(glass_x_start, glass_y_start, glass_x_end, glass_y_end, ' ')
 
 
-def draw_shape(shape, x, y, angle=1.57):
+def draw_shape(shape, x, y, angle=0):
     for id_y in range(len(shape)):
         for id_x in range(len(shape[id_y])):
             if shape[id_y][id_x] != ' ':
@@ -95,32 +100,22 @@ def draw_heap():
                 fild[row][col] = heap[row - glass_y_start][col - glass_x_start]
 
 
-def collide_x(cur_x, new_x, cur_y, shape):
-    if cur_x - new_x > 0:
+def is_collide(x, y, new_x, new_y, angle, shape):
+    collide = 0x0000
+    if x != new_x:
         for id_y in range(len(shape)):
-            if shape[id_y][0] != ' ':
-                if fild[cur_y + id_y][new_x] != ' ':
-                    return True
-    elif new_x - cur_x > 0:
-        for id_y in range(len(shape)):
-            if shape[id_y][len(shape[id_y]) - 1] != ' ':
-                if fild[cur_y + id_y][new_x + len(shape[id_y]) - 1] != ' ':
-                    return True
-    return False
-
-
-def collide_y(cur_x, cur_y, new_y, shape):
-    if cur_y - new_y > 0:
+            if x - new_x > 0 and shape[id_y][0] != ' ' and fild[y + id_y][new_x] != ' ':
+                collide ^= COLLIDE_LEFT ^ collide
+            if new_x - x > 0 and shape[id_y][len(shape[id_y]) - 1] != ' '\
+                    and fild[y + id_y][new_x + len(shape[id_y]) - 1] != ' ':
+                collide ^= COLLIDE_RIGHT ^ collide
+    if y != new_y:
         for id_x in range(len(shape[0])):
-            if shape[0][id_x] != ' ':
-                if fild[new_y][cur_x + id_x] != ' ':
-                    return True
-    elif new_y - cur_y > 0:
-        for id_x in range(len(shape[len(shape) - 1])):
-            if shape[len(shape) - 1][id_x] != ' ':
-                if fild[new_y + len(shape) - 1][cur_x + id_x] != ' ':
-                    return True
-    return False
+            if y - new_y > 0 and shape[0][id_x] != ' ' and fild[new_y][x + id_x] != ' ':
+                collide ^= COLLIDE_TOP ^ collide
+            if new_y - y > 0 and shape[len(shape) - 1][id_x] != ' ' and fild[new_y + len(shape) - 1][x + id_x] != ' ':
+                collide ^= COLLIDE_BOTTOM ^ collide
+    return collide
 
 
 if sys.platform.startswith("win"):
@@ -195,19 +190,19 @@ if __name__ == '__main__':
             rend = True
 
         is_collide_x = False
-        if collide_x(x_pos, new_x_pos, new_y_pos, cur_shape):
+        col = is_collide(x_pos, y_pos, new_x_pos, new_y_pos, 0, cur_shape)
+        if col & COLLIDE_LEFT or col & COLLIDE_RIGHT:
             new_x_pos = x_pos
             is_collide_x = True
 
         is_collide_y = False
-        if collide_y(x_pos, y_pos, new_y_pos, cur_shape):
+        if col & COLLIDE_BOTTOM:
             new_y_pos = y_pos
             is_collide_y = True
 
         if is_collide_y:
             put_shape_to_heap(x_pos, y_pos, cur_shape)
             next_figure = True
-
         x_pos = new_x_pos
         y_pos = new_y_pos
 
